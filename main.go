@@ -1,54 +1,44 @@
 package main
 
 import (
-	"database/sql"
-	"fmt"
 	"log"
-	"os"
-
-	"github.com/joho/godotenv"
-	"github.com/menellyn/task-tracker-api/internal/task"
+	"net/http"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/menellyn/task-tracker-api/internal/database"
+	"github.com/menellyn/task-tracker-api/internal/handler"
+	"github.com/menellyn/task-tracker-api/internal/task"
 )
 
-type Task struct {
-	ID    int
-	Title string
-	Done  bool
-}
-
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("warning: .env file not found")
-	}
-
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		log.Fatal("DATABASE_URL is not set")
-	}
-
-	db, err := sql.Open("pgx", databaseURL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	if err := db.Ping(); err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Connected to PostgreSQL!")
-
-	repo := task.NewPostgresRepository(db)
-
-	tasks, err := repo.GetAll()
+	db, err := database.NewDB()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for _, t := range tasks {
-		fmt.Println(t)
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer sqlDB.Close()
+
+	if err := sqlDB.Ping(); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := database.RunMigrations(sqlDB); err != nil {
+		log.Fatal(err)
+	}
+
+	repo := task.NewORMRepository(db)
+	service := task.NewTaskService(repo)
+	h := handler.NewTaskHandler(service)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /tasks", h.GetAll)
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		log.Fatal(err)
 	}
 
 }

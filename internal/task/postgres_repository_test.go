@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestTaskRepositoryAdd(t *testing.T) {
+func TestPostgresRepository_Add(t *testing.T) {
 	tx := newTestTx(t)
 	repo := NewPostgresRepository(tx)
 	got, err := repo.Add("Buy milk")
@@ -41,7 +41,7 @@ func TestTaskRepositoryAdd(t *testing.T) {
 
 }
 
-func TestTaskRepositoryGetByID(t *testing.T) {
+func TestPostgresRepository_GetByID(t *testing.T) {
 	tests := []struct {
 		name     string
 		id       int
@@ -95,7 +95,7 @@ func TestTaskRepositoryGetByID(t *testing.T) {
 	}
 }
 
-func TestTaskRepositoryGetAll(t *testing.T) {
+func TestPostgresRepository_GetAll(t *testing.T) {
 	tx := newTestTx(t)
 	repo := NewPostgresRepository(tx)
 
@@ -125,7 +125,7 @@ func TestTaskRepositoryGetAll(t *testing.T) {
 
 }
 
-func TestTaskRepositoryGetAllEmpty(t *testing.T) {
+func TestPostgresRepository_GetAllEmpty(t *testing.T) {
 	tx := newTestTx(t)
 	repo := NewPostgresRepository(tx)
 
@@ -141,7 +141,7 @@ func TestTaskRepositoryGetAllEmpty(t *testing.T) {
 
 }
 
-func TestTaskRepositoryMarkDone(t *testing.T) {
+func TestPostgresRepository_MarkDone(t *testing.T) {
 	tx := newTestTx(t)
 	repo := NewPostgresRepository(tx)
 	task, err := repo.Add("Buy milk")
@@ -163,7 +163,7 @@ func TestTaskRepositoryMarkDone(t *testing.T) {
 
 }
 
-func TestTaskRepositoryMarkDoneNotFound(t *testing.T) {
+func TestPostgresRepository_MarkDoneNotFound(t *testing.T) {
 	tx := newTestTx(t)
 	repo := NewPostgresRepository(tx)
 
@@ -172,7 +172,7 @@ func TestTaskRepositoryMarkDoneNotFound(t *testing.T) {
 	}
 }
 
-func TestTaskRepositoryDelete(t *testing.T) {
+func TestPostgresRepository_Delete(t *testing.T) {
 	tx := newTestTx(t)
 	repo := NewPostgresRepository(tx)
 
@@ -190,7 +190,7 @@ func TestTaskRepositoryDelete(t *testing.T) {
 	}
 }
 
-func TestTaskRepositoryDeleteNotFound(t *testing.T) {
+func TestPostgresRepository_DeleteNotFound(t *testing.T) {
 	tx := newTestTx(t)
 	repo := NewPostgresRepository(tx)
 
@@ -199,7 +199,7 @@ func TestTaskRepositoryDeleteNotFound(t *testing.T) {
 	}
 }
 
-func TestTaskRepositoryDeleteDoesNotDeleteOtherTasks(t *testing.T) {
+func TestPostgresRepository_DeleteDoesNotDeleteOtherTasks(t *testing.T) {
 	tx := newTestTx(t)
 	repo := NewPostgresRepository(tx)
 

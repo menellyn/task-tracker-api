@@ -1,5 +1,13 @@
 package task
 
+import (
+	"errors"
+	"fmt"
+	"strings"
+)
+
+var ErrEmptyTitle = errors.New("empty task title")
+
 type Repository interface {
 	Add(title string) (Task, error)
 	GetAll() ([]Task, error)
@@ -16,6 +24,10 @@ func NewTaskService(repo Repository) *TaskService {
 }
 
 func (s *TaskService) CreateTask(title string) (Task, error) {
+	title = strings.TrimSpace(title)
+	if title == "" {
+		return Task{}, ErrEmptyTitle
+	}
 	return s.repo.Add(title)
 }
 
@@ -23,14 +35,26 @@ func (s *TaskService) GetAllTasks() ([]Task, error) {
 	return s.repo.GetAll()
 }
 
-func (s *TaskService) GetTaskById(id int) (Task, error) {
-	return s.repo.GetByID(id)
+func (s *TaskService) GetTaskByID(id int) (Task, error) {
+	task, err := s.repo.GetByID(id)
+	if err != nil {
+		return Task{}, fmt.Errorf("get task by id %d: %w", id, err)
+	}
+	return task, nil
 }
 
-func (s *TaskService) DeleteTaskById(id int) error {
-	return s.repo.Delete(id)
+func (s *TaskService) DeleteTaskByID(id int) error {
+	err := s.repo.Delete(id)
+	if err != nil {
+		return fmt.Errorf("delete task by id %d: %w", id, err)
+	}
+	return nil
 }
 
-func (s *TaskService) MarkDoneTaskById(id int) error {
-	return s.repo.MarkDone(id)
+func (s *TaskService) MarkDoneTaskByID(id int) error {
+	err := s.repo.MarkDone(id)
+	if err != nil {
+		return fmt.Errorf("mark done task %d: %w", id, err)
+	}
+	return nil
 }
