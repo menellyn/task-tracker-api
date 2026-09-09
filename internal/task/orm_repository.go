@@ -49,6 +49,26 @@ func (r *ORMRepository) GetAll() ([]Task, error) {
 	return tasks, nil
 }
 
+func (r *ORMRepository) GetActual([]Task, error){
+	var tasks []Task
+	if err := r.db.Where("done = ?", false).Order("id").Find(&tasks).Error; err != nil{
+		return nil, err
+	}
+	return tasks, nil
+}
+
+func (r *ORMRepository) Update(task Task) (Task, error){
+	result := r.db.Model(&task).Updates(task)
+	if result.Error != nil{
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, ErrTaskNotFound
+	}
+
+	return r.GetByID(task.ID)
+}
+
 func (r *ORMRepository) MarkDone(id int) error {
 	result := r.db.Model(&Task{}).Where("id = ?", id).Update("done", true)
 	if result.Error != nil {
