@@ -6,15 +6,20 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/menellyn/task-tracker-api/internal/task"
 )
 
 type TaskHandler struct {
-	service *task.TaskService
+	service   *task.TaskService
+	validator *validator.Validate
 }
 
-func NewTaskHandler(service *task.TaskService) *TaskHandler {
-	return &TaskHandler{service: service}
+func NewTaskHandler(service *task.TaskService, validator *validator.Validate) *TaskHandler {
+	return &TaskHandler{
+		service:   service,
+		validator: validator,
+	}
 }
 
 func (handler *TaskHandler) GetAll(w http.ResponseWriter, r *http.Request) {

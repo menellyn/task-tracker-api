@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/menellyn/task-tracker-api/internal/database"
 	"github.com/menellyn/task-tracker-api/internal/handler"
@@ -33,7 +34,8 @@ func main() {
 
 	repo := task.NewORMRepository(db)
 	service := task.NewTaskService(repo)
-	h := handler.NewTaskHandler(service)
+	validate := validator.New()
+	h := handler.NewTaskHandler(service, validate)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /tasks", h.GetAll)
