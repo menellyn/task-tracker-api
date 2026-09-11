@@ -1,0 +1,4 @@
+ALTER TABLE tasks
+ADD COLUMN description TEXT,
+ADD COLUMN schedule_date TIMESTAMPTZ,
+ADD COLUMN deadline TIMESTAMPTZ;

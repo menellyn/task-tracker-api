@@ -37,8 +37,10 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /tasks", h.GetAll)
+	mux.HandleFunc("GET /tasks/actual", h.GetActual)
 	mux.HandleFunc("GET /tasks/{id}", h.GetByID)
 	mux.HandleFunc("POST /tasks", h.Create)
+	mux.HandleFunc("PUT /tasks/{id}", h.Update)
 	mux.HandleFunc("DELETE /tasks/{id}", h.Delete)
 	mux.HandleFunc("PATCH /tasks/{id}/done", h.MarkDone)
 	if err := http.ListenAndServe(":8080", mux); err != nil {

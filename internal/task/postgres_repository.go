@@ -25,7 +25,7 @@ func (r *PostgresRepository) GetAll() ([]Task, error) {
 	tasks := []Task{}
 
 	rows, err := r.db.Query(`
-		SELECT id, title, done
+		SELECT id, title, description, schedule_date, deadline, done
 		FROM tasks
 		ORDER BY id
 	`)
@@ -42,6 +42,49 @@ func (r *PostgresRepository) GetAll() ([]Task, error) {
 		if err := rows.Scan(
 			&task.ID,
 			&task.Title,
+			&task.Description,
+			&task.ScheduleDate,
+			&task.Deadline,
+			&task.Done,
+		); err != nil {
+			return nil, err
+		}
+
+		tasks = append(tasks, task)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
+}
+
+func (r *PostgresRepository) GetActual() ([]Task, error) {
+	tasks := []Task{}
+
+	rows, err := r.db.Query(`
+		SELECT id, title, description, schedule_date, deadline, done
+		FROM tasks
+		WHERE done = false
+		ORDER BY id
+	`)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var task Task
+
+		if err := rows.Scan(
+			&task.ID,
+			&task.Title,
+			&task.Description,
+			&task.ScheduleDate,
+			&task.Deadline,
 			&task.Done,
 		); err != nil {
 			return nil, err
@@ -60,7 +103,7 @@ func (r *PostgresRepository) GetAll() ([]Task, error) {
 func (r *PostgresRepository) GetByID(id int) (Task, error) {
 	task := Task{}
 	err := r.db.QueryRow(`
-		SELECT id, title, done
+		SELECT id, title, description, schedule_date, deadline, done
 		FROM tasks
 		WHERE id = $1
 	`,
@@ -68,6 +111,9 @@ func (r *PostgresRepository) GetByID(id int) (Task, error) {
 	).Scan(
 		&task.ID,
 		&task.Title,
+		&task.Description,
+		&task.ScheduleDate,
+		&task.Deadline,
 		&task.Done,
 	)
 
@@ -87,12 +133,15 @@ func (r *PostgresRepository) Add(title string) (Task, error) {
 	if err := r.db.QueryRow(`
 		INSERT INTO tasks (title)
 		VALUES ($1)
-		RETURNING id, title, done
+		RETURNING id, title, description, schedule_date, deadline, done
 	`,
 		title,
 	).Scan(
 		&task.ID,
 		&task.Title,
+		&task.Description,
+		&task.ScheduleDate,
+		&task.Deadline,
 		&task.Done,
 	); err != nil {
 		return Task{}, err
@@ -124,6 +173,43 @@ func (r *PostgresRepository) MarkDone(id int) error {
 	}
 
 	return nil
+}
+
+func (r *PostgresRepository) Update(task Task) (Task, error) {
+	updatedTask := Task{}
+	row := r.db.QueryRow(`
+		UPDATE tasks
+		SET title = $1,
+		description = $2,
+		deadline = $3,
+		scedule_date = $4,
+		done = $5
+		WHERE id = $6
+		RETURNING id, title, description, schedule_date, deadline, done
+	`,
+		task.Title,
+		task.Description,
+		task.Deadline,
+		task.ScheduleDate,
+		task.Done,
+		task.ID,
+	)
+
+	if err := row.Scan(
+		&updatedTask.ID,
+		&updatedTask.Title,
+		&updatedTask.Description,
+		&updatedTask.ScheduleDate,
+		&updatedTask.Deadline,
+		&updatedTask.Done,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Task{}, ErrTaskNotFound
+		}
+		return Task{}, err
+	}
+
+	return updatedTask, nil
 }
 
 func (r *PostgresRepository) Delete(id int) error {

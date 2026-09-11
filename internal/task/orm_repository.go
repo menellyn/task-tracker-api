@@ -49,21 +49,21 @@ func (r *ORMRepository) GetAll() ([]Task, error) {
 	return tasks, nil
 }
 
-func (r *ORMRepository) GetActual([]Task, error){
+func (r *ORMRepository) GetActual() ([]Task, error) {
 	var tasks []Task
-	if err := r.db.Where("done = ?", false).Order("id").Find(&tasks).Error; err != nil{
+	if err := r.db.Where("done = ?", false).Order("id").Find(&tasks).Error; err != nil {
 		return nil, err
 	}
 	return tasks, nil
 }
 
-func (r *ORMRepository) Update(task Task) (Task, error){
+func (r *ORMRepository) Update(task Task) (Task, error) {
 	result := r.db.Model(&task).Updates(task)
-	if result.Error != nil{
-		return nil, result.Error
+	if result.Error != nil {
+		return Task{}, result.Error
 	}
 	if result.RowsAffected == 0 {
-		return nil, ErrTaskNotFound
+		return Task{}, ErrTaskNotFound
 	}
 
 	return r.GetByID(task.ID)
