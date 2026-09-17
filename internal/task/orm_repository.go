@@ -16,11 +16,7 @@ func NewORMRepository(db *gorm.DB) *ORMRepository {
 	}
 }
 
-func (r *ORMRepository) Add(title string) (Task, error) {
-	task := Task{
-		Title: title,
-	}
-
+func (r *ORMRepository) Add(task Task) (Task, error) {
 	if err := r.db.Create(&task).Error; err != nil {
 		return Task{}, err
 	}
@@ -57,8 +53,9 @@ func (r *ORMRepository) GetActual() ([]Task, error) {
 	return tasks, nil
 }
 
-func (r *ORMRepository) Update(task Task) (Task, error) {
-	result := r.db.Model(&task).Updates(task)
+func (r *ORMRepository) Update(id int, updateData map[string]interface{}) (Task, error) {
+	result := r.db.Model(&Task{}).Where("id = ?", id).Updates(updateData)
+
 	if result.Error != nil {
 		return Task{}, result.Error
 	}
@@ -66,7 +63,7 @@ func (r *ORMRepository) Update(task Task) (Task, error) {
 		return Task{}, ErrTaskNotFound
 	}
 
-	return r.GetByID(task.ID)
+	return r.GetByID(id)
 }
 
 func (r *ORMRepository) MarkDone(id int) error {

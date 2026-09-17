@@ -9,11 +9,14 @@ import (
 func TestTaskService_CreateTask(t *testing.T) {
 	repo := NewFakeRepository()
 	s := NewTaskService(repo)
-	got, err := s.CreateTask("Buy milk")
+	taskToCreate := CreateTaskRequest{
+		Title: "Buy milk",
+	}
+	got, err := s.CreateTask(taskToCreate)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := Task{
+	want := TaskResponse{
 		Title: "Buy milk",
 		Done:  false,
 	}
@@ -31,7 +34,10 @@ func TestTaskService_CreateTask(t *testing.T) {
 func TestTaskService_CreateTaskTrimTitle(t *testing.T) {
 	repo := NewFakeRepository()
 	s := NewTaskService(repo)
-	got, err := s.CreateTask(" Buy milk  ")
+	taskToCreate := CreateTaskRequest{
+		Title: " Buy milk  ",
+	}
+	got, err := s.CreateTask(taskToCreate)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +50,10 @@ func TestTaskService_CreateTaskWithError(t *testing.T) {
 	repo := NewFakeRepository()
 	repo.err = errors.New("database error")
 	s := NewTaskService(repo)
-	_, err := s.CreateTask("Buy milk")
+	taskToCreate := CreateTaskRequest{
+		Title: "Buy milk",
+	}
+	_, err := s.CreateTask(taskToCreate)
 	if !errors.Is(err, repo.err) {
 		t.Fatalf("got %v, expected %v", err, repo.err)
 	}
@@ -54,19 +63,25 @@ func TestTaskService_CreateTaskWithError(t *testing.T) {
 func TestTaskService_CreateEmptyTask(t *testing.T) {
 	repo := NewFakeRepository()
 	s := NewTaskService(repo)
-	_, err := s.CreateTask("")
-	if !errors.Is(err, ErrEmptyTitle) {
-		t.Fatalf("got %v, expected %v", err, ErrEmptyTitle)
+	tasksToCreate := []CreateTaskRequest{
+		{
+			Title: "",
+		},
+		{
+			Title: "  ",
+		},
 	}
-	_, err = s.CreateTask("  ")
-	if !errors.Is(err, ErrEmptyTitle) {
-		t.Fatalf("got %v, expected %v", err, ErrEmptyTitle)
+	for _, taskToCreate := range tasksToCreate {
+		_, err := s.CreateTask(taskToCreate)
+		if !errors.Is(err, ErrEmptyTitle) {
+			t.Fatalf("got %v, expected %v", err, ErrEmptyTitle)
+		}
 	}
 }
 
 func TestTaskService_GetAllTasks(t *testing.T) {
 	repo := NewFakeRepository()
-	want := []Task{
+	repo.tasks = []Task{
 		{
 			ID:    1,
 			Title: "Buy milk",
@@ -83,8 +98,25 @@ func TestTaskService_GetAllTasks(t *testing.T) {
 			Done:  false,
 		},
 	}
-	repo.tasks = want
 	s := NewTaskService(repo)
+
+	want := []TaskResponse{
+		{
+			ID:    1,
+			Title: "Buy milk",
+			Done:  false,
+		},
+		{
+			ID:    2,
+			Title: "Drink hot chocolate",
+			Done:  false,
+		},
+		{
+			ID:    3,
+			Title: "Wash dishes",
+			Done:  false,
+		},
+	}
 
 	got, err := s.GetAllTasks()
 	if err != nil {
@@ -116,7 +148,7 @@ func TestTaskService_GetByID(t *testing.T) {
 		},
 	}
 	s := NewTaskService(repo)
-	want := Task{
+	want := TaskResponse{
 		ID:    1,
 		Title: "Buy milk",
 		Done:  false,
@@ -149,7 +181,7 @@ func TestTaskService_MarkDoneTaskByID(t *testing.T) {
 		},
 	}
 	s := NewTaskService(repo)
-	want := Task{
+	want := TaskResponse{
 		ID:    1,
 		Title: "Buy milk",
 		Done:  true,

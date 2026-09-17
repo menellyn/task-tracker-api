@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -42,10 +43,19 @@ func main() {
 	mux.HandleFunc("GET /tasks/actual", h.GetActual)
 	mux.HandleFunc("GET /tasks/{id}", h.GetByID)
 	mux.HandleFunc("POST /tasks", h.Create)
-	mux.HandleFunc("PUT /tasks/{id}", h.Update)
+	mux.HandleFunc("PATCH /tasks/{id}", h.Update)
 	mux.HandleFunc("DELETE /tasks/{id}", h.Delete)
 	mux.HandleFunc("PATCH /tasks/{id}/done", h.MarkDone)
-	if err := http.ListenAndServe(":8080", mux); err != nil {
+
+	server := &http.Server{
+		Addr:         ":8080",
+		Handler:      mux,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 

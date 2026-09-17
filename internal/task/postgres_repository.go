@@ -3,9 +3,8 @@ package task
 import (
 	"database/sql"
 	"errors"
+	"time"
 )
-
-var ErrTaskNotFound = errors.New("task not found")
 
 type DBTX interface {
 	Exec(query string, args ...any) (sql.Result, error)
@@ -128,14 +127,16 @@ func (r *PostgresRepository) GetByID(id int) (Task, error) {
 	return task, nil
 }
 
-func (r *PostgresRepository) Add(title string) (Task, error) {
-	task := Task{}
+func (r *PostgresRepository) Add(task Task) (Task, error) {
 	if err := r.db.QueryRow(`
-		INSERT INTO tasks (title)
-		VALUES ($1)
+		INSERT INTO tasks (title, description, schedule_date, deadline)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id, title, description, schedule_date, deadline, done
 	`,
-		title,
+		task.Title,
+		task.Description,
+		task.ScheduleDate,
+		task.Deadline,
 	).Scan(
 		&task.ID,
 		&task.Title,
@@ -175,41 +176,81 @@ func (r *PostgresRepository) MarkDone(id int) error {
 	return nil
 }
 
-func (r *PostgresRepository) Update(task Task) (Task, error) {
-	updatedTask := Task{}
-	row := r.db.QueryRow(`
-		UPDATE tasks
-		SET title = $1,
-		description = $2,
-		deadline = $3,
-		scedule_date = $4,
-		done = $5
-		WHERE id = $6
-		RETURNING id, title, description, schedule_date, deadline, done
-	`,
-		task.Title,
-		task.Description,
-		task.Deadline,
-		task.ScheduleDate,
-		task.Done,
-		task.ID,
+func (r *PostgresRepository) Update(id int, updateData map[string]interface{}) (Task, error) {
+	currentTask := Task{}
+
+	err := r.db.QueryRow(`
+        SELECT id, title, description, schedule_date, deadline, done
+        FROM tasks
+        WHERE id = $1
+    `, id).Scan(
+		&currentTask.ID,
+		&currentTask.Title,
+		&currentTask.Description,
+		&currentTask.ScheduleDate,
+		&currentTask.Deadline,
+		&currentTask.Done,
 	)
 
-	if err := row.Scan(
-		&updatedTask.ID,
-		&updatedTask.Title,
-		&updatedTask.Description,
-		&updatedTask.ScheduleDate,
-		&updatedTask.Deadline,
-		&updatedTask.Done,
-	); err != nil {
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Task{}, ErrTaskNotFound
 		}
 		return Task{}, err
 	}
 
-	return updatedTask, nil
+	for key, value := range updateData {
+		switch key {
+		case "title":
+			currentTask.Title = value.(string)
+
+		case "description":
+			currentTask.Description = value.(*string)
+
+		case "schedule_date":
+			currentTask.ScheduleDate = value.(*time.Time)
+
+		case "deadline":
+			currentTask.Deadline = value.(*time.Time)
+
+		case "done":
+			currentTask.Done = value.(bool)
+		}
+	}
+
+	err = r.db.QueryRow(`
+        UPDATE tasks
+        SET title = $1,
+            description = $2,
+            schedule_date = $3,
+            deadline = $4,
+            done = $5
+        WHERE id = $6
+        RETURNING id, title, description, schedule_date, deadline, done
+    `,
+		currentTask.Title,
+		currentTask.Description,
+		currentTask.ScheduleDate,
+		currentTask.Deadline,
+		currentTask.Done,
+		currentTask.ID,
+	).Scan(
+		&currentTask.ID,
+		&currentTask.Title,
+		&currentTask.Description,
+		&currentTask.ScheduleDate,
+		&currentTask.Deadline,
+		&currentTask.Done,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Task{}, ErrTaskNotFound
+		}
+		return Task{}, err
+	}
+
+	return currentTask, nil
 }
 
 func (r *PostgresRepository) Delete(id int) error {

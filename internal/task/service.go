@@ -1,20 +1,17 @@
 package task
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 )
 
-var ErrEmptyTitle = errors.New("empty task title")
-
 type Repository interface {
-	Add(title string) (Task, error)
+	Add(task Task) (Task, error)
 	GetAll() ([]Task, error)
 	GetActual() ([]Task, error)
 	GetByID(id int) (Task, error)
 	MarkDone(id int) error
-	Update(task Task) (Task, error)
+	Update(id int, updateData map[string]interface{}) (Task, error)
 	Delete(id int) error
 }
 type TaskService struct {
@@ -25,28 +22,58 @@ func NewTaskService(repo Repository) *TaskService {
 	return &TaskService{repo: repo}
 }
 
-func (s *TaskService) CreateTask(title string) (Task, error) {
-	title = strings.TrimSpace(title)
-	if title == "" {
-		return Task{}, ErrEmptyTitle
+func (s *TaskService) CreateTask(taskRequest CreateTaskRequest) (TaskResponse, error) {
+	taskTitle := strings.TrimSpace(taskRequest.Title)
+	if taskTitle == "" {
+		return TaskResponse{}, ErrEmptyTitle
 	}
-	return s.repo.Add(title)
+	if taskRequest.Deadline != nil &&
+		taskRequest.ScheduleDate != nil &&
+		!taskRequest.Deadline.After(*taskRequest.ScheduleDate) {
+		return TaskResponse{}, ErrInvalidTaskDates
+	}
+
+	task, err := s.repo.Add(taskRequest.ToTaskModel())
+	if err != nil {
+		return TaskResponse{}, err
+	}
+	return ToTaskResponse(task), nil
 }
 
-func (s *TaskService) GetAllTasks() ([]Task, error) {
-	return s.repo.GetAll()
+func (s *TaskService) GetAllTasks() ([]TaskResponse, error) {
+	tasks, err := s.repo.GetAll()
+	if err != nil {
+		return []TaskResponse{}, err
+	}
+
+	tasksResponse := make([]TaskResponse, len(tasks))
+	for i, task := range tasks {
+		tasksResponse[i] = ToTaskResponse(task)
+	}
+
+	return tasksResponse, nil
 }
 
-func (s *TaskService) GetActualTasks() ([]Task, error) {
-	return s.repo.GetActual()
+func (s *TaskService) GetActualTasks() ([]TaskResponse, error) {
+	tasks, err := s.repo.GetActual()
+	if err != nil {
+		return []TaskResponse{}, err
+	}
+
+	tasksResponse := make([]TaskResponse, len(tasks))
+	for i, task := range tasks {
+		tasksResponse[i] = ToTaskResponse(task)
+	}
+
+	return tasksResponse, nil
 }
 
-func (s *TaskService) GetTaskByID(id int) (Task, error) {
+func (s *TaskService) GetTaskByID(id int) (TaskResponse, error) {
 	task, err := s.repo.GetByID(id)
 	if err != nil {
-		return Task{}, fmt.Errorf("get task by id %d: %w", id, err)
+		return TaskResponse{}, fmt.Errorf("get task by id %d: %w", id, err)
 	}
-	return task, nil
+	return ToTaskResponse(task), nil
 }
 
 func (s *TaskService) DeleteTaskByID(id int) error {
@@ -65,10 +92,44 @@ func (s *TaskService) MarkDoneTaskByID(id int) error {
 	return nil
 }
 
-func (s *TaskService) Update(task Task) (Task, error) {
-	updatedTask, err := s.repo.Update(task)
-	if err != nil {
-		return Task{}, fmt.Errorf("update task %d: %w", task.ID, err)
+func (s *TaskService) Update(id int, taskRequest UpdateTaskRequest) (TaskResponse, error) {
+	if taskRequest.Title != nil {
+		if strings.TrimSpace(*taskRequest.Title) == "" {
+			return TaskResponse{}, ErrEmptyTitle
+		}
 	}
-	return updatedTask, nil
+	if taskRequest.Deadline != nil &&
+		taskRequest.ScheduleDate != nil &&
+		!taskRequest.Deadline.After(*taskRequest.ScheduleDate) {
+		return TaskResponse{}, ErrInvalidTaskDates
+	}
+	if taskRequest.Deadline != nil || taskRequest.ScheduleDate != nil {
+		task, err := s.repo.GetByID(id)
+		if err != nil {
+			return TaskResponse{}, fmt.Errorf("get task by id %d: %w", id, err)
+		}
+
+		scheduleDate := task.ScheduleDate
+		deadline := task.Deadline
+
+		if taskRequest.Deadline != nil {
+			deadline = taskRequest.Deadline
+		}
+		if taskRequest.ScheduleDate != nil {
+			scheduleDate = taskRequest.ScheduleDate
+		}
+
+		if deadline != nil &&
+			scheduleDate != nil &&
+			!deadline.After(*scheduleDate) {
+			return TaskResponse{}, ErrInvalidTaskDates
+		}
+	}
+
+	updatedTask, err := s.repo.Update(id, taskRequest.ToMap())
+	if err != nil {
+		return TaskResponse{}, fmt.Errorf("update task %d: %w", id, err)
+	}
+
+	return ToTaskResponse(updatedTask), nil
 }

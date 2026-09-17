@@ -75,17 +75,24 @@ func (handler *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
-	var taskToCreate task.Task
-	if err := json.NewDecoder(r.Body).Decode(&taskToCreate); err != nil {
+	var taskRequest task.CreateTaskRequest
+	if err := json.NewDecoder(r.Body).Decode(&taskRequest); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	createdTask, err := handler.service.CreateTask(taskToCreate.Title)
+	if err := handler.validator.Struct(taskRequest); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	createdTask, err := handler.service.CreateTask(taskRequest)
 	if err != nil {
 		if errors.Is(err, task.ErrEmptyTitle) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 
+		} else if errors.Is(err, task.ErrInvalidTaskDates) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 		} else {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
@@ -118,15 +125,35 @@ func (handler *TaskHandler) MarkDone(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
-	var taskToUpdate task.Task
-	if err := json.NewDecoder(r.Body).Decode(&taskToUpdate); err != nil {
+	var taskRequest task.UpdateTaskRequest
+
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&taskRequest); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	updatedTask, err := handler.service.Update(taskToUpdate)
+	if err := handler.validator.Struct(taskRequest); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	updatedTask, err := handler.service.Update(id, taskRequest)
 	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		if errors.Is(err, task.ErrTaskNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if errors.Is(err, task.ErrEmptyTitle) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else if errors.Is(err, task.ErrInvalidTaskDates) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	}
 
