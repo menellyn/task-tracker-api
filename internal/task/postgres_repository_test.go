@@ -9,16 +9,18 @@ import (
 func TestPostgresRepository_Add(t *testing.T) {
 	tx := newTestTx(t)
 	repo := NewPostgresRepository(tx)
-	got, err := repo.Add("Buy milk")
+	initTask := Task{
+		Title: "Buy milk",
+	}
+	got, err := repo.Add(initTask)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got.ID <= 0 {
 		t.Fatalf("generated ID should be > 0, got %d", got.ID)
 	}
-	wantTitle := "Buy milk"
-	if got.Title != wantTitle {
-		t.Fatalf("got title %q, want %q", got.Title, wantTitle)
+	if got.Title != initTask.Title {
+		t.Fatalf("got title %q, want %q", got.Title, initTask.Title)
 	}
 	if got.Done {
 		t.Fatal("new task should be not done")
@@ -35,8 +37,8 @@ func TestPostgresRepository_Add(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if title != wantTitle {
-		t.Fatalf("got title %q in database, want %q", title, wantTitle)
+	if title != initTask.Title {
+		t.Fatalf("got title %q in database, want %q", title, initTask.Title)
 	}
 
 }
@@ -66,7 +68,7 @@ func TestPostgresRepository_GetByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tx := newTestTx(t)
 			repo := NewPostgresRepository(tx)
-			createdTask, err := repo.Add("Buy milk")
+			createdTask, err := repo.Add(tt.wantTask)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -99,27 +101,40 @@ func TestPostgresRepository_GetAll(t *testing.T) {
 	tx := newTestTx(t)
 	repo := NewPostgresRepository(tx)
 
-	wantTitles := []string{"Buy milk", "Drink coffee", "Wash dishes"}
+	wantTasks := []Task{
+		{
+			Title: "Buy milk",
+			Done:  false,
+		},
+		{
+			Title: "Drink coffee",
+			Done:  false,
+		},
+		{
+			Title: "Wash dishes",
+			Done:  false,
+		},
+	}
 
-	for _, title := range wantTitles {
-		_, err := repo.Add(title)
+	for _, task := range wantTasks {
+		_, err := repo.Add(task)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	tasks, err := repo.GetAll()
+	gotTasks, err := repo.GetAll()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(tasks) != len(wantTitles) {
-		t.Fatalf("Want %d tasks, got %d tasks", len(wantTitles), len(tasks))
+	if len(gotTasks) != len(wantTasks) {
+		t.Fatalf("Want %d tasks, got %d tasks", len(wantTasks), len(gotTasks))
 	}
 
-	for i := range wantTitles {
-		if wantTitles[i] != tasks[i].Title {
-			t.Fatalf("%d tasks: want %q, got %q", i, wantTitles[i], tasks[i].Title)
+	for i := range wantTasks {
+		if wantTasks[i].Title != gotTasks[i].Title {
+			t.Fatalf("%d tasks: want %q, got %q", i, wantTasks[i].Title, gotTasks[i].Title)
 		}
 	}
 
@@ -144,7 +159,11 @@ func TestPostgresRepository_GetAllEmpty(t *testing.T) {
 func TestPostgresRepository_MarkDone(t *testing.T) {
 	tx := newTestTx(t)
 	repo := NewPostgresRepository(tx)
-	task, err := repo.Add("Buy milk")
+	initTask := Task{
+		Title: "Buy milk",
+		Done:  false,
+	}
+	task, err := repo.Add(initTask)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,8 +194,11 @@ func TestPostgresRepository_MarkDoneNotFound(t *testing.T) {
 func TestPostgresRepository_Delete(t *testing.T) {
 	tx := newTestTx(t)
 	repo := NewPostgresRepository(tx)
-
-	task, err := repo.Add("Buy milk")
+	initTask := Task{
+		Title: "Buy milk",
+		Done:  false,
+	}
+	task, err := repo.Add(initTask)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,18 +225,40 @@ func TestPostgresRepository_DeleteDoesNotDeleteOtherTasks(t *testing.T) {
 	tx := newTestTx(t)
 	repo := NewPostgresRepository(tx)
 
-	titles := []string{"Buy milk", "Wash dishes", "Read book"}
 	tasks := []Task{}
+	initTasks := []Task{
+		{
+			Title: "Buy milk",
+			Done:  false,
+		},
+		{
+			Title: "Wash dishes",
+			Done:  false,
+		},
+		{
+			Title: "Read book",
+			Done:  false,
+		},
+	}
 
-	for _, title := range titles {
-		task, err := repo.Add(title)
+	for _, initTask := range initTasks {
+		task, err := repo.Add(initTask)
 		if err != nil {
 			t.Fatal(err)
 		}
 		tasks = append(tasks, task)
 	}
 
-	wantTitles := []string{"Buy milk", "Read book"}
+	wantTasks := []Task{
+		{
+			Title: "Buy milk",
+			Done:  false,
+		},
+		{
+			Title: "Read book",
+			Done:  false,
+		},
+	}
 	if err := repo.Delete(tasks[1].ID); err != nil {
 		t.Fatal(err)
 	}
@@ -228,13 +272,13 @@ func TestPostgresRepository_DeleteDoesNotDeleteOtherTasks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(got) != len(wantTitles) {
-		t.Fatalf("expected %d tasks, got %d tasks", len(wantTitles), len(got))
+	if len(got) != len(wantTasks) {
+		t.Fatalf("expected %d tasks, got %d tasks", len(wantTasks), len(got))
 	}
 
-	for i := range wantTitles {
-		if wantTitles[i] != got[i].Title {
-			t.Fatalf("%d task: want %q, got %q", i, wantTitles[i], got[i].Title)
+	for i := range wantTasks {
+		if wantTasks[i].Title != got[i].Title {
+			t.Fatalf("%d task: want %q, got %q", i, wantTasks[i].Title, got[i].Title)
 		}
 	}
 }

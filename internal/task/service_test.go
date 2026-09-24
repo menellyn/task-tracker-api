@@ -4,7 +4,16 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"time"
 )
+
+func parseDate(value string) *time.Time {
+	date, err := time.Parse("2006-01-02", value)
+	if err != nil {
+		panic(err)
+	}
+	return &date
+}
 
 func TestTaskService_CreateTask(t *testing.T) {
 	repo := NewFakeRepository()
@@ -237,4 +246,224 @@ func TestTaskService_DeleteTaskByIDNotFound(t *testing.T) {
 	if !errors.Is(err, ErrTaskNotFound) {
 		t.Fatalf("got %v, expected %v", err, ErrTaskNotFound)
 	}
+}
+
+func TestTaskService_UpdateTask(t *testing.T) {
+	description := "Coconut milk"
+	updatedTitle := "Buy milk!"
+	updatedEmptyTitle := ""
+	updatedDone := true
+	cases := []struct {
+		name          string
+		id            int
+		initTasks     []Task
+		updateRequest UpdateTaskRequest
+		want          TaskResponse
+		err           error
+	}{
+		{
+			name: "title",
+			id:   1,
+			initTasks: []Task{
+				{
+					ID:    1,
+					Title: "Buy milk",
+					Done:  false,
+				},
+			},
+			updateRequest: UpdateTaskRequest{
+				Title: &updatedTitle,
+			},
+			want: TaskResponse{
+				ID:    1,
+				Title: "Buy milk!",
+				Done:  false,
+			},
+			err: nil,
+		},
+		{
+			name: "done",
+			id:   1,
+			initTasks: []Task{
+				{
+					ID:    1,
+					Title: "Buy milk",
+					Done:  false,
+				},
+			},
+			updateRequest: UpdateTaskRequest{
+				Done: &updatedDone,
+			},
+			want: TaskResponse{
+				ID:    1,
+				Title: "Buy milk",
+				Done:  true,
+			},
+			err: nil,
+		},
+		{
+			name: "description",
+			id:   1,
+			initTasks: []Task{
+				{
+					ID:    1,
+					Title: "Buy milk",
+					Done:  false,
+				},
+			},
+			updateRequest: UpdateTaskRequest{
+				Description: &description,
+			},
+			want: TaskResponse{
+				ID:          1,
+				Title:       "Buy milk",
+				Description: &description,
+				Done:        false,
+			},
+			err: nil,
+		},
+		{
+			name: "deadline after schedule",
+			id:   1,
+			initTasks: []Task{
+				{
+					ID:    1,
+					Title: "Buy milk",
+					Done:  false,
+				},
+			},
+			updateRequest: UpdateTaskRequest{
+				ScheduleDate: parseDate("2026-09-20"),
+				Deadline:     parseDate("2026-09-25"),
+			},
+			want: TaskResponse{
+				ID:           1,
+				Title:        "Buy milk",
+				ScheduleDate: parseDate("2026-09-20"),
+				Deadline:     parseDate("2026-09-25"),
+				Done:         false,
+			},
+			err: nil,
+		},
+		{
+			name: "deadline before schedule",
+			id:   1,
+			initTasks: []Task{
+				{
+					ID:    1,
+					Title: "Buy milk",
+					Done:  false,
+				},
+			},
+			updateRequest: UpdateTaskRequest{
+				ScheduleDate: parseDate("2026-09-20"),
+				Deadline:     parseDate("2026-09-19"),
+			},
+			err: ErrInvalidTaskDates,
+		},
+		{
+			name: "only deadline correct",
+			id:   1,
+			initTasks: []Task{
+				{
+					ID:           1,
+					Title:        "Buy milk",
+					ScheduleDate: parseDate("2026-09-20"),
+					Done:         false,
+				},
+			},
+			updateRequest: UpdateTaskRequest{
+				Deadline: parseDate("2026-09-25"),
+			},
+			want: TaskResponse{
+				ID:           1,
+				Title:        "Buy milk",
+				ScheduleDate: parseDate("2026-09-20"),
+				Deadline:     parseDate("2026-09-25"),
+				Done:         false,
+			},
+			err: nil,
+		},
+		{
+			name: "only schedule correct",
+			id:   1,
+			initTasks: []Task{
+				{
+					ID:       1,
+					Title:    "Buy milk",
+					Deadline: parseDate("2026-09-25"),
+					Done:     false,
+				},
+			},
+			updateRequest: UpdateTaskRequest{
+				ScheduleDate: parseDate("2026-09-20"),
+			},
+			want: TaskResponse{
+				ID:           1,
+				Title:        "Buy milk",
+				ScheduleDate: parseDate("2026-09-20"),
+				Deadline:     parseDate("2026-09-25"),
+				Done:         false,
+			},
+			err: nil,
+		},
+		{
+			name: "invalid deadline",
+			id:   1,
+			initTasks: []Task{
+				{
+					ID:           1,
+					Title:        "Buy milk",
+					ScheduleDate: parseDate("2026-09-20"),
+					Done:         false,
+				},
+			},
+			updateRequest: UpdateTaskRequest{
+				Deadline: parseDate("2026-09-19"),
+			},
+			err: ErrInvalidTaskDates,
+		},
+		{
+			name: "empty title",
+			id:   1,
+			initTasks: []Task{
+				{
+					ID:    1,
+					Title: "Buy milk",
+					Done:  false,
+				},
+			},
+			updateRequest: UpdateTaskRequest{
+				Title: &updatedEmptyTitle,
+			},
+			err: ErrEmptyTitle,
+		},
+		{
+			name:      "task not found",
+			id:        1,
+			initTasks: []Task{},
+			updateRequest: UpdateTaskRequest{
+				Description: &description,
+			},
+			err: ErrTaskNotFound,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := NewFakeRepository()
+			repo.tasks = tc.initTasks
+			service := NewTaskService(repo)
+			got, err := service.UpdateTask(tc.id, tc.updateRequest)
+			if !errors.Is(err, tc.err) {
+				t.Errorf("Update() error = %v, wantErr %v", err, tc.err)
+			}
+			if tc.err == nil {
+				if !reflect.DeepEqual(got, tc.want) {
+					t.Fatalf("Update() got = %+v, want %+v", got, tc.want)
+				}
+			}
+		})
+	}
+
 }
