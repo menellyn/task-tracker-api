@@ -1,6 +1,7 @@
 package task
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -11,7 +12,7 @@ type CreateTaskRequest struct {
 	Deadline     *time.Time `json:"deadline"`
 }
 
-func (r CreateTaskRequest) ToTaskModel() Task {
+func (r *CreateTaskRequest) ToTaskModel() Task {
 	return Task{
 		Title:        r.Title,
 		Description:  r.Description,
@@ -26,9 +27,35 @@ type UpdateTaskRequest struct {
 	ScheduleDate *time.Time `json:"scheduleDate"`
 	Deadline     *time.Time `json:"deadline"`
 	Done         *bool      `json:"done"`
+
+	scheduleDateSet bool
+	deadlineSet     bool
 }
 
-func (r UpdateTaskRequest) ToMap() map[string]interface{} {
+func (r *UpdateTaskRequest) UnmarshalJSON(data []byte) error {
+	type Alias UpdateTaskRequest
+
+	var aux Alias
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	*r = UpdateTaskRequest(aux)
+
+	var fields map[string]json.RawMessage
+
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+
+	_, r.scheduleDateSet = fields["scheduleDate"]
+	_, r.deadlineSet = fields["deadline"]
+
+	return nil
+}
+
+func (r *UpdateTaskRequest) ToMap() map[string]interface{} {
 	updateData := make(map[string]interface{})
 	if r.Title != nil {
 		updateData["title"] = *r.Title
@@ -36,10 +63,10 @@ func (r UpdateTaskRequest) ToMap() map[string]interface{} {
 	if r.Description != nil {
 		updateData["description"] = r.Description
 	}
-	if r.ScheduleDate != nil {
+	if r.scheduleDateSet {
 		updateData["schedule_date"] = r.ScheduleDate
 	}
-	if r.Deadline != nil {
+	if r.deadlineSet {
 		updateData["deadline"] = r.Deadline
 	}
 	if r.Done != nil {

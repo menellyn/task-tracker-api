@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Tracker</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>Мои задачи</h1>
+
+<form id="task-form">
+    <input
+            id="task-title"
+            type="text"
+            placeholder="Новая задача"
+    >
+    <button type="submit">Добавить</button>
+</form>
+
+<div>
+    <button id="all-tasks" class="filter-button">Все</button>
+    <button id="actual-tasks" class="filter-button">Актуальные</button>
+</div>
+
+<ul id="task-list"></ul>
+
+<div id="edit-modal" class="modal">
+    <div class="modal-content">
+
+        <div class="edit-header">
+            <button id="edit-status" class="edit-status">○</button>
+
+            <input id="edit-title" type="text">
+        </div>
+
+        <div class="edit-body">
+
+            <textarea id="edit-description"></textarea>
+
+            <div class="edit-dates">
+                <label>
+                    Начать
+                    <div class="date-input">
+                        <input id="edit-schedule-date" type="date">
+                        <button id="clear-schedule-date" class="clear-date" type="button">×</button>
+                    </div>
+                </label>
+
+                <label>
+                    Дедлайн
+                    <div class="date-input">
+                        <input id="edit-deadline" type="date">
+                        <button id="clear-deadline" class="clear-date" type="button">×</button>
+                    </div>
+                </label>
+            </div>
+
+        </div>
+
+        <div class="edit-actions">
+            <button id="delete-edit">Удалить</button>
+
+            <div>
+                <button id="cancel-edit">Отмена</button>
+                <button id="save-edit">Сохранить</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
