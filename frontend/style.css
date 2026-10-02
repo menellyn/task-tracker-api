@@ -1,30 +1,130 @@
 body {
     font-family: Arial, sans-serif;
-    max-width: 600px;
-    margin: 50px auto;
-    padding: 0 20px;
+    max-width: 640px;
+    margin: 60px auto;
+    padding: 0 24px;
+
+    color: #30343b;
+    background: #f7f8fb;
 }
 
 h1 {
-    margin-bottom: 30px;
+    margin: 0 0 28px;
+
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
 }
+
+/* ---------- Общие элементы ---------- */
 
 form {
     display: flex;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 14px;
 }
 
 input {
     flex: 1;
-    padding: 10px;
-    font-size: 16px;
+
+    padding: 11px 14px;
+
+    font-family: inherit;
+    font-size: 15px;
+
+    border: 1px solid #e1e4ea;
+    border-radius: 10px;
+
+    outline: none;
+    background: white;
+
+    transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
+}
+
+input:focus {
+    border-color: #8bbce3;
+    box-shadow: 0 0 0 3px rgba(93, 173, 226, 0.12);
 }
 
 button {
     padding: 10px 15px;
+
+    border: none;
+    border-radius: 9px;
+
+    font-family: inherit;
     cursor: pointer;
+
+    transition:
+        background 0.2s,
+        transform 0.1s;
 }
+
+button:active {
+    transform: translateY(1px);
+}
+
+/* ---------- Форма создания ---------- */
+
+#task-form button {
+    padding: 11px 18px;
+
+    background: #5dade2;
+    color: white;
+
+    font-size: 14px;
+    font-weight: 500;
+
+    box-shadow: 0 2px 5px rgba(93, 173, 226, 0.2);
+}
+
+#task-form button:hover {
+    background: #4d9bd3;
+    box-shadow: 0 4px 10px rgba(93, 173, 226, 0.25);
+}
+
+.form-error {
+    margin: 0;
+    min-height: 18px;
+
+    padding-left: 2px;
+
+    font-size: 12px;
+    color: #c45b68;
+}
+
+/* ---------- Фильтры ---------- */
+
+.filter-buttons {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+}
+
+.filter-button {
+    padding: 8px 13px;
+
+    background: transparent;
+    color: #7d848d;
+
+    font-size: 13px;
+}
+
+.filter-button:hover {
+    background: #eef1f5;
+    color: #4f565f;
+}
+
+.filter-button.active {
+    background: white;
+    color: #4d9bd3;
+
+    box-shadow: 0 2px 6px rgba(30, 40, 60, 0.06);
+}
+
+/* ---------- Список задач ---------- */
 
 #task-list {
     list-style: none;
@@ -34,193 +134,350 @@ button {
 #task-list li {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 
-    padding: 12px;
-    margin-bottom: 8px;
+    padding: 14px 16px;
+    margin-bottom: 9px;
 
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    border: 1px solid #e5e8ee;
+    border-radius: 12px;
 
-    transition: background 0.2s;
+    background: white;
+
+    box-shadow: 0 2px 6px rgba(30, 40, 60, 0.03);
+
+    transition:
+        background 0.2s,
+        box-shadow 0.2s,
+        transform 0.2s;
 }
 
 #task-list li:hover {
-    background: #fafafa;
-}
-
-#task-list span {
-    flex: 1;
+    background: white;
+    box-shadow: 0 4px 12px rgba(30, 40, 60, 0.07);
+    transform: translateY(-1px);
 }
 
 .task-info {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
 
-.task-info small {
-    color: #777;
-}
-
-.modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-content {
-    width: 400px;
-    max-width: calc(100% - 40px);
-
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-
-    padding: 25px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-}
-
-.modal-content label {
     display: flex;
     flex-direction: column;
     gap: 5px;
+
+    min-width: 0;
 }
 
-.modal-content textarea {
-    min-height: 80px;
+.task-info span {
+    font-size: 15px;
+    line-height: 1.4;
+
+    cursor: pointer;
 }
 
-.edit-done {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
+.task-info span:hover {
+    color: #4d9bd3;
 }
 
-.edit-done input {
-    flex: none;
-}
-
-.edit-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 10px;
-}
-
-#delete-edit {
-    color: #b00020;
+.task-info small {
+    font-size: 12px;
+    color: #8a919b;
 }
 
 .completed .task-info span {
     text-decoration: line-through;
-    color: #888;
+    color: #9aa0a8;
+}
+
+.completed .task-info span:hover {
+    color: #7da8c7;
 }
 
 .completed .task-info small {
-    color: #aaa;
+    color: #b3b8bf;
 }
 
-.done-button {
+/* ---------- Статус задачи ---------- */
+
+.done-button,
+.edit-status {
+    position: relative;
+
     width: 20px;
     height: 20px;
     padding: 0;
 
-    border: 1.5px solid #aaa;
+    border: 1.5px solid #b8bec6;
     border-radius: 50%;
+
     background: transparent;
 
     display: flex;
     align-items: center;
     justify-content: center;
 
-    font-size: 13px;
-    line-height: 1;
-
-    color: #555;
+    flex-shrink: 0;
     cursor: pointer;
 
-    flex-shrink: 0;
+    transition:
+        background 0.2s,
+        border-color 0.2s;
 }
 
-.completed .done-button {
-    background: rgba(0, 0, 0, 0.15);
-    border-color: rgba(0, 0, 0, 0.2);
+.done-button::after,
+.edit-status::after {
+    content: "✓";
+
+    position: absolute;
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -52%);
+
+    font-size: 13px;
+    font-weight: 600;
+
+    color: #4d9bd3;
+
+    opacity: 0;
+
+    transition: opacity 0.15s;
 }
+
+.done-button:hover,
+.edit-status:hover {
+    border-color: #8bbce3;
+    background: #f2f8fc;
+}
+
+.done-button:hover::after {
+    opacity: 1;
+}
+
+.completed .done-button,
+.edit-status.completed {
+    background: #e8f2fa;
+    border-color: #9bc8e8;
+}
+
+.completed .done-button::after,
+.edit-status.completed::after {
+    opacity: 1;
+}
+
+/* ---------- Кнопки задачи ---------- */
+
+.edit-button,
+.delete-button {
+    width: 32px;
+    height: 32px;
+
+    padding: 0;
+
+    border: none;
+    border-radius: 8px;
+
+    background: transparent;
+
+    font-size: 14px;
+
+    opacity: 0;
+
+    transition:
+        opacity 0.2s,
+        background 0.2s;
+}
+
+#task-list li:hover .edit-button,
+#task-list li:hover .delete-button {
+    opacity: 1;
+}
+
+.edit-button:hover {
+    background: #eef5fb;
+}
+
+.delete-button:hover {
+    background: #fff1f2;
+}
+
+/* ---------- Пустой список ---------- */
+
+.empty-state {
+    justify-content: center;
+
+    min-height: 70px;
+    box-sizing: border-box;
+
+    color: #9aa0a8;
+
+    border-style: dashed !important;
+    border-color: #dfe3e8 !important;
+
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* ---------- Модальное окно ---------- */
+
+.modal {
+    display: none;
+
+    position: fixed;
+    inset: 0;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(35, 42, 52, 0.28);
+    backdrop-filter: blur(3px);
+}
+
+.modal-content {
+    width: 540px;
+    max-width: 100%;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+
+    padding: 30px;
+
+    background: #ffffff;
+    border: 1px solid rgba(30, 40, 60, 0.05);
+    border-radius: 18px;
+
+    box-shadow:
+        0 20px 50px rgba(30, 40, 60, 0.14),
+        0 4px 12px rgba(30, 40, 60, 0.05);
+}
+
+/* ---------- Заголовок модалки ---------- */
 
 .edit-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-}
-
-.edit-status {
-    width: 30px;
-    height: 30px;
-    padding: 0;
-    border: none;
-    background: transparent;
-    font-size: 24px;
-    cursor: pointer;
+    gap: 12px;
 }
 
 .edit-header input {
     flex: 1;
-    font-size: 20px;
-    font-weight: 600;
+
+    padding: 4px 0;
+
     border: none;
     outline: none;
-    padding: 5px 0;
+
+    background: transparent;
+
+    font-family: inherit;
+    font-size: 21px;
+    font-weight: 600;
+    color: #30343b;
+
+    letter-spacing: -0.3px;
 }
+
+.edit-header input::placeholder {
+    color: #b5bac1;
+}
+
+#edit-title.completed {
+    text-decoration: line-through;
+    color: #888;
+}
+
+/* ---------- Содержимое модалки ---------- */
 
 .edit-body {
     display: flex;
-    gap: 25px;
+    gap: 24px;
 }
 
 .edit-body textarea {
-    flex: 1;
-    min-height: 120px;
+    width: 100%;
+    min-height: 130px;
+
+    box-sizing: border-box;
+
+    padding: 13px 14px;
+
+    border: 1px solid #e1e4ea;
+    border-radius: 11px;
+
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #30343b;
+
     resize: vertical;
+    outline: none;
+
+    background: #f9fafb;
+
+    transition:
+        border-color 0.2s,
+        background 0.2s,
+        box-shadow 0.2s;
 }
 
+.edit-body textarea:focus {
+    border-color: #8bbce3;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(93, 173, 226, 0.10);
+}
+
+/* ---------- Даты ---------- */
+
 .edit-dates {
-    width: 130px;
+    width: 140px;
 
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 14px;
 }
 
 .edit-dates label {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    font-size: 13px;
-    color: #777;
+    gap: 6px;
+
+    font-size: 12px;
+    font-weight: 500;
+    color: #8a919b;
 }
 
 .edit-dates input {
     width: 100%;
     box-sizing: border-box;
+
+    padding: 8px 9px;
+
+    border: 1px solid #e1e4ea;
+    border-radius: 9px;
+
+    font-family: inherit;
+    outline: none;
+    background: #f9fafb;
+
+    transition:
+        border-color 0.2s,
+        background 0.2s,
+        box-shadow 0.2s;
 }
 
-.edit-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.edit-dates input:focus {
+    border-color: #8bbce3;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(93, 173, 226, 0.10);
 }
 
 .date-input {
     position: relative;
+
     display: flex;
     align-items: center;
 }
@@ -231,16 +488,19 @@ button {
 
 .clear-date {
     position: absolute;
-    right: 5px;
+    right: 30px;
 
     display: none;
 
-    border: none;
-    background: transparent;
     padding: 2px 5px;
 
-    font-size: 18px;
-    color: #888;
+    border: none;
+    background: transparent;
+
+    font-size: 16px;
+    line-height: 1;
+
+    color: #a0a6ad;
     cursor: pointer;
 }
 
@@ -249,35 +509,122 @@ button {
 }
 
 .clear-date:hover {
-    color: #333;
+    color: #5f6670;
 }
 
-.filter-button.active {
-    background: #333;
-    color: white;
+/* ---------- Кнопки модалки ---------- */
+
+.edit-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 12px;
+
+    padding-top: 4px;
+
+    border-top: 1px solid #eef0f3;
 }
 
-.edit-button,
-.delete-button {
-    border: none;
+.edit-actions button {
+    padding: 9px 15px;
+
+    border-radius: 9px;
+
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+#delete-edit {
     background: transparent;
-    padding: 5px;
-
-    opacity: 0;
+    color: #c45b68;
 }
 
-#task-list li:hover .edit-button,
-#task-list li:hover .delete-button {
-    opacity: 1;
+#delete-edit:hover {
+    background: #fff1f3;
 }
 
-.edit-button,
-.delete-button {
-    transition: opacity 0.2s;
+#cancel-edit {
+    background: #f3f4f6;
+    color: #5f6670;
 }
 
-.empty-state {
-    justify-content: center;
-    color: #888;
-    border-style: dashed !important;
+#cancel-edit:hover {
+    background: #e9ebef;
+}
+
+#save-edit {
+    background: #5dade2;
+    color: white;
+
+    box-shadow: 0 2px 5px rgba(93, 173, 226, 0.18);
+}
+
+#save-edit:hover {
+    background: #4d9bd3;
+    box-shadow: 0 4px 10px rgba(93, 173, 226, 0.24);
+}
+
+/* ---------- Inline-редактирование ---------- */
+
+.inline-title-input {
+    flex: 1;
+
+    width: 100%;
+    min-width: 0;
+
+    padding: 4px 6px;
+
+    box-sizing: border-box;
+
+    border: 1px solid #8bbce3;
+    border-radius: 6px;
+
+    font-family: inherit;
+    font-size: 15px;
+    color: #30343b;
+
+    outline: none;
+    background: white;
+
+    box-shadow: 0 0 0 3px rgba(93, 173, 226, 0.10);
+}
+
+/* ---------- Адаптивность ---------- */
+
+@media (max-width: 600px) {
+    body {
+        margin: 30px auto;
+        padding: 0 16px;
+    }
+
+    h1 {
+        font-size: 26px;
+        margin-bottom: 22px;
+    }
+
+    .edit-body {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .modal-content {
+        padding: 22px;
+        border-radius: 15px;
+    }
+
+    .edit-dates {
+        display: flex;
+        gap: 12px;
+    }
+
+    .edit-dates label {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .edit-actions {
+        gap: 12px;
+    }
 }

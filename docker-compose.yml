@@ -2,14 +2,39 @@ services:
   postgres:
     image: postgres:17
     container_name: task-tracker-postgres
+
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: task_tracker
+
     ports:
       - "5433:5432"
+
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    container_name: task-tracker-backend
+    env_file:
+      - .env
+
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      - postgres
+
+  frontend:
+    build: ./frontend
+    container_name: task-tracker-frontend
+
+    ports:
+      - "80:80"
+
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

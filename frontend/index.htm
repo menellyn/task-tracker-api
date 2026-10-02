@@ -20,6 +20,8 @@
     <button type="submit">Добавить</button>
 </form>
 
+<p id="create-error" class="form-error"></p>
+
 <div>
     <button id="all-tasks" class="filter-button">Все</button>
     <button id="actual-tasks" class="filter-button">Актуальные</button>
@@ -31,7 +33,7 @@
     <div class="modal-content">
 
         <div class="edit-header">
-            <button id="edit-status" class="edit-status">○</button>
+            <button id="edit-status" class="edit-status"></button>
 
             <input id="edit-title" type="text">
         </div>
@@ -59,6 +61,8 @@
             </div>
 
         </div>
+
+        <p id="edit-error" class="form-error"></p>
 
         <div class="edit-actions">
             <button id="delete-edit">Удалить</button>

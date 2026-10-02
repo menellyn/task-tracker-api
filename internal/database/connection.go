@@ -2,7 +2,6 @@ package database
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -13,9 +12,7 @@ import (
 )
 
 func NewDB() (*gorm.DB, error) {
-	if err := godotenv.Load(); err != nil {
-		log.Println("warning: .env file not found")
-	}
+	_ = godotenv.Load()
 
 	databaseDSN := os.Getenv("DATABASE_DSN")
 	if databaseDSN == "" {

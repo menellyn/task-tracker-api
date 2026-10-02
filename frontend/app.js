@@ -23,6 +23,11 @@ const actualTasksButton = document.getElementById("actual-tasks");
 
 let currentFilter = "all";
 
+const editError = document.getElementById("edit-error");
+const createError = document.getElementById("create-error");
+
+const API_URL = "";
+
 cancelEdit.addEventListener("click", () => {
     editModal.style.display = "none";
 });
@@ -63,12 +68,160 @@ function updateFilterButtons() {
     );
 }
 
+function updateEditStatus() {
+    editStatus.classList.toggle(
+        "completed",
+        editingTask.done
+    );
+
+    editTitle.classList.toggle(
+        "completed",
+        editingTask.done
+    );
+}
+
+function getErrorMessage(errorCode) {
+    switch (errorCode) {
+        case "empty_title":
+            return "Название задачи не может быть пустым.";
+
+        case "invalid_task_dates":
+            return "Дедлайн должен быть позже даты начала.";
+
+        case "task_not_found":
+            return "Задача не найдена.";
+
+        default:
+            return "Произошла неизвестная ошибка.";
+    }
+}
+
+function openEditModal(task) {
+    editingTask = task;
+    editError.textContent = "";
+
+    editTitle.value = task.title;
+    editDescription.value = task.description || "";
+
+    editScheduleDate.value = task.scheduleDate
+        ? task.scheduleDate.slice(0, 10)
+        : "";
+
+    editDeadline.value = task.deadline
+        ? task.deadline.slice(0, 10)
+        : "";
+
+    updateEditStatus();
+
+    editModal.style.display = "flex";
+}
+
+async function editTaskTitle(task, titleElement) {
+    const input = document.createElement("input");
+
+    input.type = "text";
+    input.value = task.title;
+
+    input.className = "inline-title-input";
+
+    titleElement.replaceWith(input);
+
+    input.focus();
+    input.select();
+
+    const oldTitle = task.title;
+
+    let finished = false;
+
+    async function finish(save) {
+        if (finished) {
+            return;
+        }
+
+        finished = true;
+
+        if (!save) {
+            input.replaceWith(titleElement);
+            return;
+        }
+
+        const newTitle = input.value.trim();
+
+        if (!newTitle) {
+            input.replaceWith(titleElement);
+            return;
+        }
+
+        if (newTitle === oldTitle) {
+            input.replaceWith(titleElement);
+            return;
+        }
+
+        const response = await fetch(
+            `${API_URL}/tasks/${task.id}`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    title: newTitle
+                })
+            }
+        );
+
+        if (!response.ok) {
+            const data = await response.json();
+
+            console.error(getErrorMessage(data.error));
+
+            input.replaceWith(titleElement);
+
+            return;
+        }
+
+        task.title = newTitle;
+        titleElement.textContent = newTitle;
+
+        input.replaceWith(titleElement);
+    }
+
+    input.addEventListener("keydown", async (event) => {
+        if (event.key === "Enter") {
+            await finish(true);
+        }
+
+        if (event.key === "Escape") {
+            await finish(false);
+        }
+    });
+
+    input.addEventListener("blur", async () => {
+        await finish(true);
+    });
+}
+
 async function loadTasks() {
     const url = currentFilter === "actual"
-        ? "http://localhost:8080/tasks/actual"
-        : "http://localhost:8080/tasks";
+        ? `${API_URL}/tasks/actual`
+        : `${API_URL}/tasks`;
 
     const response = await fetch(url);
+
+    if (!response.ok) {
+        const data = await response.json();
+
+        console.error(
+            "Не удалось загрузить задачи:",
+            data.error
+        );
+
+        taskList.innerHTML =
+            "<li class='empty-state'>Не удалось загрузить задачи.</li>";
+
+        return;
+    }
+
     const tasks = await response.json();
 
     taskList.innerHTML = "";
@@ -85,7 +238,7 @@ async function loadTasks() {
         }
 
         li.innerHTML = `
-            <button class="done-button">${task.done ? "✓" : ""}</button>
+            <button class="done-button"></button>
         
             <div class="task-info">
                 <span>${task.title}</span>
@@ -101,46 +254,58 @@ async function loadTasks() {
         const doneButton = li.querySelector(".done-button");
         const deleteButton = li.querySelector(".delete-button");
         const editButton = li.querySelector(".edit-button");
+        const taskTitleElement = li.querySelector(".task-info span");
 
         doneButton.addEventListener("click", async () => {
-            await fetch(`http://localhost:8080/tasks/${task.id}`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    done: !task.done
-                })
-            });
+            const response = await fetch(
+                `${API_URL}/tasks/${task.id}`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        done: !task.done
+                    })
+                }
+            );
 
-            loadTasks();
+            if (!response.ok) {
+                const data = await response.json();
+
+                console.error(getErrorMessage(data.error));
+
+                return;
+            }
+
+            await loadTasks();
         });
 
         deleteButton.addEventListener("click", async () => {
-            await fetch(`http://localhost:8080/tasks/${task.id}`, {
-                method: "DELETE"
-            });
+            const response = await fetch(
+                `${API_URL}/tasks/${task.id}`,
+                {
+                    method: "DELETE"
+                }
+            );
 
-            loadTasks();
+            if (!response.ok) {
+                const data = await response.json();
+
+                console.error(getErrorMessage(data.error));
+
+                return;
+            }
+
+            await loadTasks();
         });
 
         editButton.addEventListener("click", () => {
-            editingTask = task;
+            editTaskTitle(task, taskTitleElement);
+        });
 
-            editTitle.value = task.title;
-            editDescription.value = task.description || "";
-
-            editScheduleDate.value = task.scheduleDate
-                ? task.scheduleDate.slice(0, 10)
-                : "";
-
-            editDeadline.value = task.deadline
-                ? task.deadline.slice(0, 10)
-                : "";
-
-            editStatus.textContent = task.done ? "✓" : "○";
-
-            editModal.style.display = "flex";
+        taskTitleElement.addEventListener("click", () => {
+            openEditModal(task);
         });
 
         taskList.appendChild(li);
@@ -167,7 +332,7 @@ saveEdit.addEventListener("click", async () => {
     }
 
     const response = await fetch(
-        `http://localhost:8080/tasks/${editingTask.id}`,
+        `${API_URL}/tasks/${editingTask.id}`,
         {
             method: "PATCH",
             headers: {
@@ -184,12 +349,10 @@ saveEdit.addEventListener("click", async () => {
     );
 
     if (!response.ok) {
-        const message = await response.text();
-        console.error(
-            "Ошибка сохранения:",
-            response.status,
-            message
-        );
+        const data = await response.json();
+
+        editError.textContent = getErrorMessage(data.error);
+
         return;
     }
 
@@ -200,9 +363,11 @@ saveEdit.addEventListener("click", async () => {
 taskForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    createError.textContent = "";
+
     const title = taskTitle.value;
 
-    await fetch("http://localhost:8080/tasks", {
+    const response = await fetch(`${API_URL}/tasks`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -212,22 +377,31 @@ taskForm.addEventListener("submit", async (event) => {
         })
     });
 
-    taskTitle.value = "";
+    if (!response.ok) {
+        const data = await response.json();
 
-    loadTasks();
+        createError.textContent = getErrorMessage(data.error);
+
+        return;
+    }
+
+    taskTitle.value = "";
+    await loadTasks();
 });
 
 deleteEdit.addEventListener("click", async () => {
     const response = await fetch(
-        `http://localhost:8080/tasks/${editingTask.id}`,
+        `${API_URL}/tasks/${editingTask.id}`,
         {
             method: "DELETE"
         }
     );
 
     if (!response.ok) {
-        const message = await response.text();
-        console.error("Ошибка удаления:", response.status, message);
+        const data = await response.json();
+
+        editError.textContent = getErrorMessage(data.error);
+
         return;
     }
 
@@ -238,7 +412,5 @@ deleteEdit.addEventListener("click", async () => {
 editStatus.addEventListener("click", () => {
     editingTask.done = !editingTask.done;
 
-    editStatus.textContent = editingTask.done
-        ? "✓"
-        : "○";
+    updateEditStatus();
 });

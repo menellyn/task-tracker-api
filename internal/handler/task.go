@@ -10,18 +10,30 @@ import (
 	"github.com/menellyn/task-tracker-api/internal/task"
 )
 
+type ErrorCode string
+
+const (
+	ErrorInternalServer   ErrorCode = "internal_server_error"
+	ErrorInvalidID        ErrorCode = "invalid_id"
+	ErrorTaskNotFound     ErrorCode = "task_not_found"
+	ErrorInvalidJSON      ErrorCode = "invalid_json"
+	ErrorValidation       ErrorCode = "validation_error"
+	ErrorEmptyTitle       ErrorCode = "empty_title"
+	ErrorInvalidTaskDates ErrorCode = "invalid_task_dates"
+)
+
 type ErrorResponse struct {
-	StatusCode int    `json:"status_code"`
-	Content    string `json:"content"`
+	Error   ErrorCode `json:"error"`
+	Message string    `json:"message"`
 }
 
-func writeError(w http.ResponseWriter, statusCode int, content string) {
+func writeError(w http.ResponseWriter, statusCode int, err ErrorCode, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
 	_ = json.NewEncoder(w).Encode(ErrorResponse{
-		StatusCode: statusCode,
-		Content:    content,
+		Error:   err,
+		Message: message,
 	})
 }
 
@@ -50,7 +62,7 @@ func NewTaskHandler(service Service, validator *validator.Validate) *TaskHandler
 func (handler *TaskHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	tasks, err := handler.service.GetAllTasks()
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		writeError(w, http.StatusInternalServerError, ErrorInternalServer, "Internal Server Error")
 		return
 	}
 
@@ -62,7 +74,7 @@ func (handler *TaskHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 func (handler *TaskHandler) GetActual(w http.ResponseWriter, r *http.Request) {
 	tasks, err := handler.service.GetActualTasks()
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		writeError(w, http.StatusInternalServerError, ErrorInternalServer, "Internal Server Error")
 		return
 	}
 
@@ -74,15 +86,15 @@ func (handler *TaskHandler) GetActual(w http.ResponseWriter, r *http.Request) {
 func (handler *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid ID")
+		writeError(w, http.StatusBadRequest, ErrorInvalidID, "Invalid ID")
 		return
 	}
 	gotTask, err := handler.service.GetTaskByID(id)
 	if err != nil {
 		if errors.Is(err, task.ErrTaskNotFound) {
-			writeError(w, http.StatusNotFound, err.Error())
+			writeError(w, http.StatusNotFound, ErrorTaskNotFound, err.Error())
 		} else {
-			writeError(w, http.StatusInternalServerError, "Internal Server Error")
+			writeError(w, http.StatusInternalServerError, ErrorInternalServer, "Internal Server Error")
 		}
 		return
 	}
@@ -93,24 +105,24 @@ func (handler *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (handler *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var taskRequest task.CreateTaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&taskRequest); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, http.StatusBadRequest, ErrorInvalidJSON, err.Error())
 		return
 	}
 
 	if err := handler.validator.Struct(taskRequest); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		writeError(w, http.StatusUnprocessableEntity, ErrorValidation, err.Error())
 		return
 	}
 
 	createdTask, err := handler.service.CreateTask(taskRequest)
 	if err != nil {
 		if errors.Is(err, task.ErrEmptyTitle) {
-			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			writeError(w, http.StatusUnprocessableEntity, ErrorEmptyTitle, err.Error())
 
 		} else if errors.Is(err, task.ErrInvalidTaskDates) {
-			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			writeError(w, http.StatusUnprocessableEntity, ErrorInvalidTaskDates, err.Error())
 		} else {
-			writeError(w, http.StatusInternalServerError, "Internal Server Error")
+			writeError(w, http.StatusInternalServerError, ErrorInternalServer, "Internal Server Error")
 		}
 		return
 	}
@@ -123,14 +135,14 @@ func (handler *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (handler *TaskHandler) MarkDone(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid ID")
+		writeError(w, http.StatusBadRequest, ErrorInvalidID, "Invalid ID")
 		return
 	}
 	if err := handler.service.MarkDoneTaskByID(id); err != nil {
 		if errors.Is(err, task.ErrTaskNotFound) {
-			writeError(w, http.StatusNotFound, err.Error())
+			writeError(w, http.StatusNotFound, ErrorTaskNotFound, err.Error())
 		} else {
-			writeError(w, http.StatusInternalServerError, "Internal Server Error")
+			writeError(w, http.StatusInternalServerError, ErrorInternalServer, "Internal Server Error")
 		}
 		return
 	}
@@ -142,30 +154,30 @@ func (handler *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid ID")
+		writeError(w, http.StatusBadRequest, ErrorInvalidID, "Invalid ID")
 		return
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&taskRequest); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, http.StatusBadRequest, ErrorInvalidJSON, err.Error())
 		return
 	}
 
 	if err := handler.validator.Struct(taskRequest); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		writeError(w, http.StatusUnprocessableEntity, ErrorValidation, err.Error())
 		return
 	}
 
 	updatedTask, err := handler.service.UpdateTask(id, taskRequest)
 	if err != nil {
 		if errors.Is(err, task.ErrTaskNotFound) {
-			writeError(w, http.StatusNotFound, err.Error())
+			writeError(w, http.StatusNotFound, ErrorTaskNotFound, err.Error())
 		} else if errors.Is(err, task.ErrEmptyTitle) {
-			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			writeError(w, http.StatusUnprocessableEntity, ErrorEmptyTitle, err.Error())
 		} else if errors.Is(err, task.ErrInvalidTaskDates) {
-			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			writeError(w, http.StatusUnprocessableEntity, ErrorInvalidTaskDates, err.Error())
 		} else {
-			writeError(w, http.StatusInternalServerError, "Internal Server Error")
+			writeError(w, http.StatusInternalServerError, ErrorInternalServer, "Internal Server Error")
 		}
 		return
 	}
@@ -177,14 +189,14 @@ func (handler *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (handler *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid ID")
+		writeError(w, http.StatusBadRequest, ErrorInvalidID, "Invalid ID")
 		return
 	}
 	if err := handler.service.DeleteTaskByID(id); err != nil {
 		if errors.Is(err, task.ErrTaskNotFound) {
-			writeError(w, http.StatusNotFound, err.Error())
+			writeError(w, http.StatusNotFound, ErrorTaskNotFound, err.Error())
 		} else {
-			writeError(w, http.StatusInternalServerError, "Internal Server Error")
+			writeError(w, http.StatusInternalServerError, ErrorInternalServer, "Internal Server Error")
 		}
 		return
 	}
